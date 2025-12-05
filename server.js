@@ -40,6 +40,7 @@ app.all("*", async (req, res) => {
   const headers = { ...req.headers };
   delete headers.host;
   delete headers["content-length"];
+  delete headers["accept-encoding"]; // Prevent compression issues
 
   try {
     const upstreamResponse = await fetch(fullUrl, {
@@ -48,7 +49,12 @@ app.all("*", async (req, res) => {
       body: ["GET", "HEAD"].includes(req.method) ? undefined : req.body,
     });
 
-    upstreamResponse.headers.forEach((v, k) => res.setHeader(k, v));
+    // Copy headers but skip compression-related ones
+    upstreamResponse.headers.forEach((v, k) => {
+      if (!['content-encoding', 'transfer-encoding'].includes(k.toLowerCase())) {
+        res.setHeader(k, v);
+      }
+    });
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.status(upstreamResponse.status);
 
