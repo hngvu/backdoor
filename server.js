@@ -55,11 +55,18 @@ app.all("*", async (req, res) => {
         res.setHeader(k, v);
       }
     });
+    
+    // Ensure proper content-type for XML
+    if (!res.getHeader('content-type') && fullUrl.includes('.xml')) {
+      res.setHeader('content-type', 'application/xml; charset=utf-8');
+    }
+    
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.status(upstreamResponse.status);
 
-    if (upstreamResponse.body) upstreamResponse.body.pipe(res);
-    else res.end();
+    // Get the response as text/buffer to ensure proper handling
+    const responseData = await upstreamResponse.text();
+    res.send(responseData);
   } catch (err) {
     console.error("Proxy error:", err);
     res.status(500).json({ error: "Proxy failed", details: err.message });
